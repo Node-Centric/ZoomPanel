@@ -69,6 +69,15 @@ mkdir -p /var/log/zoompanel
 cp -r . /opt/zoompanel/
 cd /opt/zoompanel
 
+# Ensure no default or seed sites exist
+mkdir -p /opt/zoompanel/backend/data
+echo "[]" > /opt/zoompanel/backend/data/sites.json
+echo "{}" > /opt/zoompanel/backend/data/site-credentials.json
+rm -rf /opt/zoompanel/backend/data/www/* || true
+rm -rf /opt/zoompanel/backend/data/home/* || true
+rm -rf /opt/zoompanel/backend/data/nginx/sites-available/* || true
+rm -rf /opt/zoompanel/backend/data/nginx/sites-enabled/* || true
+
 # Install dependencies and build frontend and backend
 echo -e "${BLUE}[6/8] Building ZoomPanel services...${NC}"
 cd /opt/zoompanel/backend && npm install && npm run build
@@ -99,12 +108,14 @@ systemctl daemon-reload
 systemctl enable zoompanel.service
 systemctl restart zoompanel.service
 
-# 8. Configure Firewall
+# 8. Configure Firewall (UFW)
 echo -e "${BLUE}[8/8] Configuring Firewall (UFW)...${NC}"
-ufw allow 22/tcp || true
-ufw allow 80/tcp || true
-ufw allow 443/tcp || true
-ufw allow 8443/tcp || true
+# Allow essential ports matching ZoomPanel default rules:
+# Web traffic (80, 443) and ZoomPanel Daemon (8443) enabled by default for both IPv4 and IPv6
+ufw allow 80/tcp comment 'ZoomPanel HTTP' || true
+ufw allow 443/tcp comment 'ZoomPanel HTTPS' || true
+ufw allow 8443/tcp comment 'ZoomPanel Daemon' || true
+# Note: SSH/SFTP (port 22) and MariaDB (port 3306) entries are disabled by default in ZoomPanel WAF
 
 # Detect Server IP
 SERVER_IP=$(curl -s -4 ifconfig.me || hostname -I | awk '{print $1}')

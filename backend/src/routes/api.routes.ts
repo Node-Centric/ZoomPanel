@@ -8,6 +8,7 @@ import { filesService } from '../services/files.service.js';
 import { mariaDbService } from '../services/mariadb.service.js';
 import { authService } from '../services/auth.service.js';
 import { sslService } from '../services/ssl.service.js';
+import { firewallService } from '../services/firewall.service.js';
 
 export const apiRouter = Router();
 
@@ -157,6 +158,79 @@ apiRouter.post('/services/sftp/port', async (req, res) => {
     }
     const result = await systemService.updateSftpPort(numPort);
     res.json(result);
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Update ZoomPanel Core Daemon Port
+apiRouter.post('/services/daemon/port', async (req, res) => {
+  try {
+    const { port } = req.body;
+    const numPort = Number(port);
+    if (!numPort || isNaN(numPort) || numPort < 1 || numPort > 65535) {
+      return res.status(400).json({ error: 'Valid port number between 1 and 65535 is required.' });
+    }
+    const result = await systemService.updateDaemonPort(numPort);
+    res.json(result);
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Firewall / WAF Endpoints
+apiRouter.get('/firewall', async (req, res) => {
+  try {
+    const status = await firewallService.getStatus();
+    res.json(status);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+apiRouter.post('/firewall/rules', async (req, res) => {
+  try {
+    const created = await firewallService.createRule(req.body);
+    res.status(201).json({ success: true, rules: created });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+apiRouter.put('/firewall/rules/:id', async (req, res) => {
+  try {
+    const updated = await firewallService.updateRule(req.params.id, req.body);
+    res.json({ success: true, rule: updated });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+apiRouter.patch('/firewall/rules/:id/toggle', async (req, res) => {
+  try {
+    const { enabled } = req.body || {};
+    const toggled = await firewallService.toggleRule(req.params.id, enabled);
+    res.json({ success: true, rule: toggled });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+apiRouter.delete('/firewall/rules/:id', async (req, res) => {
+  try {
+    const force = req.query.force === 'true' || req.body?.force === true;
+    await firewallService.deleteRule(req.params.id, force);
+    res.json({ success: true, message: 'Rule deleted successfully.' });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+apiRouter.post('/firewall/sync-daemon-port', async (req, res) => {
+  try {
+    const port = Number(req.body.port) || sitesService.getDaemonPort();
+    await firewallService.syncDaemonPort(port);
+    res.json({ success: true, message: `Firewall daemon rules synchronized to port ${port}.` });
   } catch (err: any) {
     res.status(400).json({ error: err.message });
   }

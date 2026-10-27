@@ -62,8 +62,9 @@ export const Settings: React.FC<SettingsProps> = ({ stats, onRefresh }) => {
   const [togglingServices, setTogglingServices] = useState<Record<string, boolean>>({});
   const [restartMessage, setRestartMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // SFTP Port Modal State
+  // Service Port Modal State
   const [showPortModal, setShowPortModal] = useState(false);
+  const [portModalService, setPortModalService] = useState<'sftp' | 'daemon'>('sftp');
   const [targetPort, setTargetPort] = useState<number>(stats?.services?.sftpPort || 22);
   const [isSavingPort, setIsSavingPort] = useState(false);
   const [portModalError, setPortModalError] = useState<string | null>(null);
@@ -122,7 +123,8 @@ export const Settings: React.FC<SettingsProps> = ({ stats, onRefresh }) => {
     }
   };
 
-  const handleOpenPortModal = (currentPort: number) => {
+  const handleOpenPortModal = (serviceId: 'sftp' | 'daemon', currentPort: number) => {
+    setPortModalService(serviceId);
     setTargetPort(currentPort);
     setPortModalError(null);
     setShowPortModal(true);
@@ -135,24 +137,32 @@ export const Settings: React.FC<SettingsProps> = ({ stats, onRefresh }) => {
       setPortModalError('Port must be a valid number between 1 and 65535.');
       return;
     }
-    if (num === 8443) {
-      setPortModalError('Port 8443 is reserved for the ZoomPanel daemon.');
+    if (portModalService === 'sftp' && num === (stats?.services?.daemonPort || 8443)) {
+      setPortModalError(`Port ${num} is reserved for the ZoomPanel daemon.`);
       return;
     }
     setIsSavingPort(true);
     setPortModalError(null);
     try {
-      const res = await api.updateSftpPort(num);
-      setRestartMessage({
-        type: 'success',
-        text: res.message || `SFTP service port updated to ${num}.`,
-      });
+      if (portModalService === 'daemon') {
+        const res = await api.updateDaemonPort(num);
+        setRestartMessage({
+          type: 'success',
+          text: res.message || `ZoomPanel daemon port updated to ${num}. Firewall rules automatically updated.`,
+        });
+      } else {
+        const res = await api.updateSftpPort(num);
+        setRestartMessage({
+          type: 'success',
+          text: res.message || `SFTP service port updated to ${num}.`,
+        });
+      }
       setShowPortModal(false);
       if (onRefresh) {
         onRefresh();
       }
     } catch (err: any) {
-      setPortModalError(err.message || 'Failed to update SFTP port');
+      setPortModalError(err.message || 'Failed to update service port');
     } finally {
       setIsSavingPort(false);
     }
@@ -197,9 +207,13 @@ export const Settings: React.FC<SettingsProps> = ({ stats, onRefresh }) => {
     {
       id: 'daemon',
       name: 'ZoomPanel Core Daemon',
-      desc: 'Process Management, System Vitals & Control Plane API • Port 8443',
+      desc: `Process Management, System Vitals & Control Plane API • Port ${stats?.services?.daemonPort || 8443}`,
       icon: Layers,
       isRunning: true,
+      canEditPort: true,
+      port: stats?.services?.daemonPort || 8443,
+      showHelpTooltip: true,
+      helpTooltipText: 'Changing the daemon port automatically updates firewall rules (for both IPv4 & IPv6) and listener settings.',
     },
   ];
 
@@ -438,7 +452,7 @@ export const Settings: React.FC<SettingsProps> = ({ stats, onRefresh }) => {
                       {svc.canEditPort && (
                         <button
                           type="button"
-                          onClick={() => handleOpenPortModal(svc.port || 22)}
+                          onClick={() => handleOpenPortModal(svc.id as 'sftp' | 'daemon', svc.port || (svc.id === 'daemon' ? 8443 : 22))}
                           disabled={isRestarting || isToggling}
                           className="p-2 rounded-xl border border-slate-200 text-slate-500 hover:text-brand-600 hover:bg-white hover:border-brand-200 transition-colors shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
                           title={`Configure ${svc.name} Port`}
@@ -493,7 +507,7 @@ export const Settings: React.FC<SettingsProps> = ({ stats, onRefresh }) => {
         </div>
       )}
 
-      {/* Configure SFTP Port Modal */}
+      {/* Configure Service Port Modal */}
       {showPortModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-fade-in">
           <div className="bg-white rounded-3xl border border-slate-200/80 shadow-2xl max-w-md w-full overflow-hidden animate-scale-in">
@@ -503,8 +517,14 @@ export const Settings: React.FC<SettingsProps> = ({ stats, onRefresh }) => {
                   <SlidersHorizontal className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-slate-900">Configure SFTP Port</h3>
-                  <p className="text-xs text-slate-500 font-medium">Change listener port for the SFTP server</p>
+                  <h3 className="text-base font-bold text-slate-900">
+                    {portModalService === 'daemon' ? 'Configure ZoomPanel Daemon Port' : 'Configure SFTP Port'}
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium">
+                    {portModalService === 'daemon'
+                      ? 'Change listener port for ZoomPanel control plane & Web GUI'
+                      : 'Change listener port for the SFTP server'}
+                  </p>
                 </div>
               </div>
               <button
@@ -517,6 +537,14 @@ export const Settings: React.FC<SettingsProps> = ({ stats, onRefresh }) => {
             </div>
 
             <form onSubmit={handleSavePort} className="p-6 space-y-4">
+              {portModalService === 'daemon' && (
+                <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 text-xs font-medium flex items-start gap-2">
+                  <span className="text-sm">ℹ️</span>
+                  <span>
+                    Firewall rules named <strong>ZoomPanel</strong> (both IPv4 &amp; IPv6) will automatically be updated to match this new port.
+                  </span>
+                </div>
+              )}
               {portModalError && (
                 <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-600" />

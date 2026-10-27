@@ -3,6 +3,9 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import type { SystemStats } from '../../../shared/types.js';
 import { sftpService } from './sftp.service.js';
+import { sitesService, DAEMON_PORT } from './sites.service.js';
+import { firewallService } from './firewall.service.js';
+import { authService } from './auth.service.js';
 
 const execAsync = promisify(exec);
 
@@ -184,6 +187,7 @@ export class SystemService {
       mariadbVersion: '13.0.2',
       sftp: sftpService.isRunning(),
       sftpPort: sftpService.getPort(),
+      daemonPort: sitesService.getDaemonPort() || DAEMON_PORT,
     };
   }
 
@@ -333,6 +337,17 @@ export class SystemService {
 
   public async updateSftpPort(port: number): Promise<{ success: boolean; port: number; message: string }> {
     return sftpService.setPort(port);
+  }
+
+  public async updateDaemonPort(port: number): Promise<{ success: boolean; port: number; message: string }> {
+    sitesService.setDaemonPort(port);
+    await authService.updateSettings({ daemonPort: port }).catch(() => {});
+    await firewallService.syncDaemonPort(port);
+    return {
+      success: true,
+      port,
+      message: `ZoomPanel daemon port updated to ${port}. Firewall rules automatically updated.`
+    };
   }
 }
 

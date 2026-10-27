@@ -13,9 +13,20 @@ export const FIRST_APP_PORT = 3000;
 export class SitesService {
   private dbPath: string;
   private sites: Map<string, Site> = new Map();
+  private daemonPort: number = DAEMON_PORT;
 
   constructor() {
     this.dbPath = path.resolve(process.cwd(), 'data', 'sites.json');
+  }
+
+  public getDaemonPort(): number {
+    return this.daemonPort;
+  }
+
+  public setDaemonPort(port: number): void {
+    if (port && !isNaN(port)) {
+      this.daemonPort = port;
+    }
   }
 
   public async init(): Promise<void> {
@@ -49,7 +60,7 @@ export class SitesService {
 
   public getUsedPorts(): { port: number; siteId?: string; domain?: string }[] {
     const used: { port: number; siteId?: string; domain?: string }[] = [
-      { port: DAEMON_PORT, domain: 'ZoomPanel Daemon' }
+      { port: this.daemonPort, domain: 'ZoomPanel Daemon' }
     ];
     for (const site of this.sites.values()) {
       used.push({ port: site.port, siteId: site.id, domain: site.domain });
@@ -64,7 +75,7 @@ export class SitesService {
     }
     const maxPort = Math.max(...existingPorts);
     let nextPort = Math.max(FIRST_APP_PORT, maxPort + 1);
-    while (nextPort === DAEMON_PORT || existingPorts.includes(nextPort)) {
+    while (nextPort === this.daemonPort || existingPorts.includes(nextPort)) {
       nextPort++;
     }
     return nextPort;

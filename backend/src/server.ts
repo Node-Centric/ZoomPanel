@@ -8,6 +8,7 @@ import { nginxService } from './services/nginx.service.js';
 import { mariaDbService } from './services/mariadb.service.js';
 import { authService } from './services/auth.service.js';
 import { sftpService } from './services/sftp.service.js';
+import { firewallService } from './services/firewall.service.js';
 
 const app = express();
 const PORT = process.env.PORT || DAEMON_PORT; // 2999
@@ -39,6 +40,9 @@ const frontendDistPath = candidateDistPaths.find((p) => fs.existsSync(p));
 if (frontendDistPath) {
   app.use(express.static(frontendDistPath));
   app.get('*', (req, res) => {
+    if (req.path.startsWith('/api')) {
+      return res.status(404).json({ error: `API endpoint ${req.path} not found` });
+    }
     res.sendFile(path.join(frontendDistPath, 'index.html'));
   });
 }
@@ -49,29 +53,12 @@ async function bootstrap() {
     await mariaDbService.init();
     await sitesService.init();
     await nginxService.init();
+    await firewallService.init();
 
     if (sftpService.isEnabled()) {
       await sftpService.start().catch((err) => {
         console.error('[SFTP Service] Boot warning:', err.message);
       });
-    }
-
-    // If no sites exist yet, seed a demonstration site on port 3000
-    const existing = sitesService.getAllSites();
-    if (existing.length === 0) {
-      await sitesService.createSite({
-        domain: 'demo-api.local',
-        type: 'nodejs',
-        port: FIRST_APP_PORT, // 3000
-        nodeVersion: 'v26.12.1',
-        entryFile: 'server.js',
-        siteUser: 'demoapi',
-        sitePassword: 'Password123!',
-        enableSSL: true,
-        sslType: 'self-signed',
-        enableDatabases: true
-      });
-      console.log(`[ZoomPanel] Initialized with demo site demo-api.local on port ${FIRST_APP_PORT}`);
     }
 
     app.listen(PORT, () => {

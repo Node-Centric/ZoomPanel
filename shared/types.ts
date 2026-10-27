@@ -167,6 +167,7 @@ export interface SystemStats {
     mariadbVersion?: string;
     sftp?: boolean;
     sftpPort?: number;
+    daemonPort?: number;
   };
 }
 
@@ -200,6 +201,7 @@ export interface SafeUser {
 export interface PanelSettings {
   initialized: boolean;
   timeZone: string;
+  daemonPort?: number;
   configuredAt?: string;
 }
 
@@ -217,4 +219,54 @@ export interface AuthStatusResponse {
   isAuthenticated: boolean;
   user?: SafeUser | null;
   settings: PanelSettings;
+}
+
+// Firewall / WAF Types
+export type FirewallProtocol = 'tcp' | 'udp' | 'any';
+export type FirewallIpVersion = 'ipv4' | 'ipv6';
+export type FirewallAction = 'allow' | 'deny';
+
+export interface FirewallRule {
+  id: string;
+  name: string;
+  description: string;
+  port: string;
+  protocol: FirewallProtocol;
+  ipVersion: FirewallIpVersion;
+  source: string;
+  enabled: boolean;
+  action: FirewallAction;
+  isCore?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateFirewallRulePayload {
+  name: string;
+  description?: string;
+  port: string;
+  protocol?: FirewallProtocol;
+  ipVersion: FirewallIpVersion | 'both';
+  source?: string;
+  enabled?: boolean;
+  action?: FirewallAction;
+}
+
+export interface UpdateFirewallRulePayload {
+  name?: string;
+  description?: string;
+  port?: string;
+  protocol?: FirewallProtocol;
+  ipVersion?: FirewallIpVersion;
+  source?: string;
+  enabled?: boolean;
+  action?: FirewallAction;
+}
+
+export interface FirewallStatus {
+  enabled: boolean;
+  rulesCount: number;
+  activeCount: number;
+  daemonPort: number;
+  rules: FirewallRule[];
 }

@@ -13,7 +13,11 @@ import type {
   SafeUser,
   PanelSettings,
   SetupPayload,
-  AuthStatusResponse
+  AuthStatusResponse,
+  FirewallRule,
+  CreateFirewallRulePayload,
+  UpdateFirewallRulePayload,
+  FirewallStatus
 } from '../../../shared/types.js';
 
 const API_BASE = '/api';
@@ -300,6 +304,79 @@ export const api = {
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: 'Failed to update SFTP port' }));
       throw new Error(err.error || 'Failed to update SFTP port');
+    }
+    return res.json();
+  },
+
+  async updateDaemonPort(port: number): Promise<{ success: boolean; port: number; message: string }> {
+    const res = await fetch(`${API_BASE}/services/daemon/port`, {
+      method: 'POST',
+      headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ port }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Failed to update daemon port' }));
+      throw new Error(err.error || 'Failed to update daemon port');
+    }
+    return res.json();
+  },
+
+  async getFirewall(): Promise<FirewallStatus> {
+    const res = await fetch(`${API_BASE}/firewall`, {
+      headers: getHeaders(),
+    });
+    if (!res.ok) throw new Error('Failed to fetch firewall status');
+    return res.json();
+  },
+
+  async createFirewallRule(payload: CreateFirewallRulePayload): Promise<{ success: boolean; rules: FirewallRule[] }> {
+    const res = await fetch(`${API_BASE}/firewall/rules`, {
+      method: 'POST',
+      headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Failed to create firewall rule' }));
+      throw new Error(err.error || 'Failed to create firewall rule');
+    }
+    return res.json();
+  },
+
+  async updateFirewallRule(id: string, payload: UpdateFirewallRulePayload): Promise<{ success: boolean; rule: FirewallRule }> {
+    const res = await fetch(`${API_BASE}/firewall/rules/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Failed to update firewall rule' }));
+      throw new Error(err.error || 'Failed to update firewall rule');
+    }
+    return res.json();
+  },
+
+  async toggleFirewallRule(id: string, enabled?: boolean): Promise<{ success: boolean; rule: FirewallRule }> {
+    const res = await fetch(`${API_BASE}/firewall/rules/${encodeURIComponent(id)}/toggle`, {
+      method: 'PATCH',
+      headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Failed to toggle firewall rule' }));
+      throw new Error(err.error || 'Failed to toggle firewall rule');
+    }
+    return res.json();
+  },
+
+  async deleteFirewallRule(id: string, force = false): Promise<{ success: boolean; message: string }> {
+    const q = force ? '?force=true' : '';
+    const res = await fetch(`${API_BASE}/firewall/rules/${encodeURIComponent(id)}${q}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Failed to delete firewall rule' }));
+      throw new Error(err.error || 'Failed to delete firewall rule');
     }
     return res.json();
   },
