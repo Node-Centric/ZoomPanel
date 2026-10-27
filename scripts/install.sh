@@ -32,10 +32,12 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
+export PATH=$PATH:/usr/local/bin:/usr/bin:/bin
+
 # 2. Update Apt & Install Base Utilities
 echo -e "${BLUE}[1/8] Updating package index and installing dependencies...${NC}"
 apt-get update -y
-apt-get install -y curl wget git gnupg2 ca-certificates lsb-release ufw openssl nginx
+apt-get install -y curl wget git gnupg2 ca-certificates lsb-release ufw openssl nginx build-essential
 
 # 3. Install MariaDB 13.0.2
 echo -e "${BLUE}[2/8] Installing MariaDB 13.0.2 database server...${NC}"
@@ -43,14 +45,34 @@ apt-get install -y mariadb-server mariadb-client
 systemctl enable mariadb
 systemctl start mariadb
 
-# 4. Setup NodeSource Repository for Node.js LTS
-echo -e "${BLUE}[3/8] Installing Node.js LTS runtime...${NC}"
-if ! command -v node &> /dev/null; then
+# 4. Setup NodeSource Repository for Node.js LTS and npm
+echo -e "${BLUE}[3/8] Installing Node.js LTS runtime & npm...${NC}"
+if ! command -v node &> /dev/null || ! command -v npm &> /dev/null; then
   mkdir -p /etc/apt/keyrings
-  curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+  curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor --yes -o /etc/apt/keyrings/nodesource.gpg
   echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" > /etc/apt/sources.list.d/nodesource.list
   apt-get update -y
-  apt-get install -y nodejs
+  apt-get install -y nodejs npm || apt-get install -y nodejs
+fi
+
+# Fallback: guarantee npm is installed if separate package in distribution
+if ! command -v npm &> /dev/null; then
+  echo -e "${BLUE}Installing npm package from repository...${NC}"
+  apt-get install -y npm || true
+fi
+
+# Verify runtime versions
+echo -e "${GREEN}Node.js version: $(node -v 2>/dev/null || echo 'not found')${NC}"
+echo -e "${GREEN}npm version:     $(npm -v 2>/dev/null || echo 'not found')${NC}"
+
+if ! command -v npm &> /dev/null; then
+  echo -e "${RED}[ERROR] npm could not be located. Trying corepack enable...${NC}"
+  corepack enable || true
+fi
+
+if ! command -v npm &> /dev/null; then
+  echo -e "${RED}[FATAL] npm is required for ZoomPanel dependencies. Please run 'apt-get install -y npm' and retry.${NC}"
+  exit 1
 fi
 
 # 5. Install PM2 Globally
