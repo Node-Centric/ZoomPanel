@@ -87,8 +87,10 @@ mkdir -p /etc/zoompanel/ssl
 mkdir -p /var/www
 mkdir -p /var/log/zoompanel
 
-# Copy application files to /opt/zoompanel
-cp -r . /opt/zoompanel/
+# Copy application files to /opt/zoompanel (if not already running inside /opt/zoompanel)
+if [ "$(pwd)" != "/opt/zoompanel" ]; then
+  cp -r . /opt/zoompanel/
+fi
 cd /opt/zoompanel
 
 # Ensure no default or seed sites exist
@@ -100,10 +102,32 @@ rm -rf /opt/zoompanel/backend/data/home/* || true
 rm -rf /opt/zoompanel/backend/data/nginx/sites-available/* || true
 rm -rf /opt/zoompanel/backend/data/nginx/sites-enabled/* || true
 
+# Clean any existing cross-platform node_modules or previous build artifacts
+rm -rf /opt/zoompanel/node_modules /opt/zoompanel/backend/node_modules /opt/zoompanel/frontend/node_modules
+rm -rf /opt/zoompanel/backend/dist /opt/zoompanel/frontend/dist
+
 # Install dependencies and build frontend and backend
 echo -e "${BLUE}[6/8] Building ZoomPanel services...${NC}"
-cd /opt/zoompanel/backend && npm install && npm run build
-cd /opt/zoompanel/frontend && npm install && npm run build
+npm install --include=optional
+
+# Ensure native Linux Rollup binary is present (handles npm optionalDependencies bug #4828)
+ARCH=$(uname -m)
+ROLLUP_PKG=""
+if [ "$ARCH" = "x86_64" ]; then
+  ROLLUP_PKG="@rollup/rollup-linux-x64-gnu"
+elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
+  ROLLUP_PKG="@rollup/rollup-linux-arm64-gnu"
+fi
+
+if [ -n "$ROLLUP_PKG" ]; then
+  if [ ! -d "/opt/zoompanel/node_modules/$ROLLUP_PKG" ] && [ ! -d "/opt/zoompanel/frontend/node_modules/$ROLLUP_PKG" ]; then
+    echo -e "${BLUE}Ensuring native bundler binary ($ROLLUP_PKG) is installed...${NC}"
+    npm install "$ROLLUP_PKG" --save-optional --workspace=frontend || true
+  fi
+fi
+
+# Build backend daemon and frontend UI
+npm run build
 
 # 7. Configure Systemd Service (Daemon on Port 8443)
 echo -e "${BLUE}[7/8] Creating ZoomPanel systemd daemon service on port 8443...${NC}"
