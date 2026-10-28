@@ -298,7 +298,7 @@ export const Settings: React.FC<SettingsProps> = ({ stats, onRefresh }) => {
               </div>
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/60">
                 <span className="text-slate-400">Node.js Global Runtime</span>
-                <p className="text-sm font-bold text-slate-800 mt-1">{stats?.os.nodeVersion || 'v26.12.1'} (Latest)</p>
+                <p className="text-sm font-bold text-slate-800 mt-1">{stats?.os.nodeVersion || 'v26.13.0'} (Latest)</p>
               </div>
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/60">
                 <span className="text-slate-400">System Uptime</span>

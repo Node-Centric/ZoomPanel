@@ -1,4 +1,6 @@
 import os from 'os';
+import fs from 'fs/promises';
+import { existsSync } from 'fs';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import type { SystemStats } from '../../../shared/types.js';
@@ -12,9 +14,77 @@ const execAsync = promisify(exec);
 export class SystemService {
   private cachedPublicIp: string | null = null;
   private lastPublicIpFetch: number = 0;
+  private cachedOsInfo: { platform: string; distro: string } | null = null;
 
   constructor() {
     this.resolvePublicIp().catch(() => {});
+  }
+
+  private async getOsInfo(): Promise<{ platform: string; distro: string }> {
+    if (this.cachedOsInfo) {
+      return this.cachedOsInfo;
+    }
+
+    if (process.platform === 'linux') {
+      try {
+        const osReleasePaths = ['/etc/os-release', '/usr/lib/os-release'];
+        for (const filePath of osReleasePaths) {
+          if (existsSync(filePath)) {
+            const content = await fs.readFile(filePath, 'utf-8');
+            const prettyMatch = content.match(/^PRETTY_NAME=["']?([^"'\r\n]+)["']?/m);
+            if (prettyMatch && prettyMatch[1]) {
+              this.cachedOsInfo = {
+                platform: 'Linux',
+                distro: prettyMatch[1].trim(),
+              };
+              return this.cachedOsInfo;
+            }
+            const nameMatch = content.match(/^NAME=["']?([^"'\r\n]+)["']?/m);
+            const verMatch = content.match(/^VERSION=["']?([^"'\r\n]+)["']?/m);
+            if (nameMatch && nameMatch[1]) {
+              const name = nameMatch[1].trim();
+              const ver = verMatch && verMatch[1] ? ` ${verMatch[1].trim()}` : '';
+              this.cachedOsInfo = {
+                platform: 'Linux',
+                distro: `${name}${ver}`,
+              };
+              return this.cachedOsInfo;
+            }
+          }
+        }
+      } catch {}
+      this.cachedOsInfo = {
+        platform: 'Linux',
+        distro: `Linux ${os.release()}`,
+      };
+      return this.cachedOsInfo;
+    }
+
+    if (process.platform === 'win32') {
+      let winVersion = typeof os.version === 'function' ? os.version() : '';
+      if (!winVersion) {
+        winVersion = `Windows ${os.release()}`;
+      }
+      this.cachedOsInfo = {
+        platform: 'Windows',
+        distro: winVersion,
+      };
+      return this.cachedOsInfo;
+    }
+
+    if (process.platform === 'darwin') {
+      this.cachedOsInfo = {
+        platform: 'macOS',
+        distro: `macOS ${os.release()}`,
+      };
+      return this.cachedOsInfo;
+    }
+
+    this.cachedOsInfo = {
+      platform: os.type(),
+      distro: `${os.type()} ${os.release()}`,
+    };
+    return this.cachedOsInfo;
   }
 
   private async resolvePublicIp(): Promise<string> {
@@ -121,14 +191,16 @@ export class SystemService {
     // Determine public IPv4 address
     const serverIp = await this.resolvePublicIp();
 
+    const osInfo = await this.getOsInfo();
+
     return {
       os: {
-        platform: process.platform === 'linux' ? 'Ubuntu' : os.type(),
-        distro: process.platform === 'linux' ? 'Ubuntu 26.04 LTS' : os.release(),
+        platform: osInfo.platform,
+        distro: osInfo.distro,
         release: os.release(),
         uptime: Math.round(os.uptime()),
         hostname: os.hostname(),
-        nodeVersion: 'v26.12.1',
+        nodeVersion: process.version || 'v26.13.0',
         ip: serverIp,
       },
       cpu: {
@@ -215,7 +287,7 @@ export class SystemService {
     };
 
     const lines = [
-      `[${isoDate} ${timeStr(1800)}] [systemd] Starting ZoomPanel Daemon v1.0.0 (Node.js v26.12.1)...`,
+      `[${isoDate} ${timeStr(1800)}] [systemd] Starting ZoomPanel Daemon v1.0.0 (Node.js ${process.version || 'v26.13.0'})...`,
       `[${isoDate} ${timeStr(1798)}] [systemd] Initialized core modules: process-manager, nginx-proxy, mariadb-admin.`,
       `[${isoDate} ${timeStr(1795)}] [systemd] Started ZoomPanel Daemon on port 8443 (HTTPS/HTTP).`,
       `[${isoDate} ${timeStr(1500)}] [nginx] Loaded virtual host configurations from /etc/nginx/sites-enabled/*.`,

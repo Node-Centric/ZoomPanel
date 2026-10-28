@@ -50,7 +50,7 @@ export const CreateSiteModal: React.FC<CreateSiteModalProps> = ({
   const [siteType, setSiteType] = useState<SiteType>('nodejs');
   const [domain, setDomain] = useState('');
   const [aliases, setAliases] = useState('');
-  const [nodeVersion, setNodeVersion] = useState('v26.12.1');
+  const [nodeVersion, setNodeVersion] = useState('v26.13.0');
   const [port, setPort] = useState<number | ''>(3000);
   const [entryFile, setEntryFile] = useState('server.js');
   const [enableSSL, setEnableSSL] = useState(true);
@@ -368,7 +368,7 @@ export const CreateSiteModal: React.FC<CreateSiteModalProps> = ({
                     onChange={(e) => setNodeVersion(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 transition-smooth"
                   >
-                    <option value="v26.12.1">Node.js 26.12.1 (Latest)</option>
+                    <option value="v26.13.0">Node.js 26.13.0 (Latest)</option>
                   </select>
                 </div>
 

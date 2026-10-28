@@ -19,6 +19,9 @@
     "start": "npm run start -w backend",
     "install:all": "npm install"
   },
+  "engines": {
+    "node": ">=26.13.0"
+  },
   "devDependencies": {
     "concurrently": "^9.1.0"
   }

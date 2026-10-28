@@ -36,8 +36,8 @@ export class SitesService {
       const list: Site[] = JSON.parse(data);
       this.sites.clear();
       list.forEach((s) => {
-        if (!s.nodeVersion || s.nodeVersion.startsWith('v20')) {
-          s.nodeVersion = 'v26.12.1';
+        if (!s.nodeVersion || s.nodeVersion.startsWith('v20') || s.nodeVersion === 'v26.12.1') {
+          s.nodeVersion = 'v26.13.0';
         }
         if (!s.siteUser) {
           s.siteUser = s.id.replace(/[^a-z0-9_]/g, '_').slice(0, 32);
@@ -205,7 +205,7 @@ server.listen(PORT, '127.0.0.1', () => {
       rootDirectory,
       homeDirectory: systemUserService.getUserHomeDir(siteUserClean),
       entryFile: entryFileName,
-      nodeVersion: payload.nodeVersion || 'v26.12.1',
+      nodeVersion: payload.nodeVersion || 'v26.13.0',
       siteUser: siteUserClean,
       sshKeys: [],
       createdAt: now,

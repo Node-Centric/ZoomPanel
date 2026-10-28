@@ -377,6 +377,8 @@ export function App() {
         currentTab={selectedSiteId ? 'sites' : currentTab}
         onSelectTab={handleSelectTab}
         serverHostname={stats?.os.hostname || 'ubuntu-vps'}
+        osDistro={stats?.os.distro}
+        nodeVersion={stats?.os.nodeVersion}
       />
 
       {/* Main Workspace */}

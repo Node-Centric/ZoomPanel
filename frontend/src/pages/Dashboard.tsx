@@ -55,7 +55,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <div className="relative z-10 space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 text-white text-xs font-semibold backdrop-blur-md">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span>Ubuntu 26.04 VPS Environment</span>
+            <span>{stats?.os.distro || 'Ubuntu 26.04 LTS'}{stats?.os.platform === 'Linux' ? ' VPS' : ''} Environment</span>
           </div>
           <h2 className="text-2xl font-bold tracking-tight">System Performance & Sites</h2>
           <p className="text-white/80 text-sm max-w-xl">

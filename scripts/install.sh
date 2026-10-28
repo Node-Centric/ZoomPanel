@@ -50,7 +50,7 @@ echo -e "${BLUE}[3/8] Installing Node.js LTS runtime & npm...${NC}"
 if ! command -v node &> /dev/null || ! command -v npm &> /dev/null; then
   mkdir -p /etc/apt/keyrings
   curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor --yes -o /etc/apt/keyrings/nodesource.gpg
-  echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" > /etc/apt/sources.list.d/nodesource.list
+  echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_26.x nodistro main" > /etc/apt/sources.list.d/nodesource.list
   apt-get update -y
   apt-get install -y nodejs npm || apt-get install -y nodejs
 fi

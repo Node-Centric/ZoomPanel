@@ -15,9 +15,19 @@ interface SidebarProps {
   currentTab: string;
   onSelectTab: (tab: string) => void;
   serverHostname?: string;
+  osDistro?: string;
+  nodeVersion?: string;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab, serverHostname = 'ubuntu-26.04' }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ 
+  currentTab, 
+  onSelectTab, 
+  serverHostname = 'ubuntu-vps',
+  osDistro,
+  nodeVersion
+}) => {
+  const displayOs = osDistro || 'Linux';
+  const displayNode = nodeVersion || 'v26.13.0';
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'sites', label: 'Sites', icon: Globe },
@@ -87,7 +97,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab, serve
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               <p className="text-xs font-semibold text-slate-800 truncate">{serverHostname}</p>
             </div>
-            <p className="text-[11px] text-slate-500 font-medium">Ubuntu 26.04 • Node v26.12.1</p>
+            <p 
+              className="text-[11px] text-slate-500 font-medium truncate" 
+              title={`${displayOs} • Node ${displayNode}`}
+            >
+              {displayOs} • Node {displayNode}
+            </p>
           </div>
         </div>
       </div>
