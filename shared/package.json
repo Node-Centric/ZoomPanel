@@ -1,5 +1,11 @@
 {
   "name": "zoompanel-shared",
   "version": "1.0.0",
-  "type": "module"
+  "description": "Shared TypeScript types, data models, and API interfaces for ZoomPanel",
+  "main": "./types.ts",
+  "types": "./types.ts",
+  "type": "module",
+  "exports": {
+    ".": "./types.ts"
+  }
 }

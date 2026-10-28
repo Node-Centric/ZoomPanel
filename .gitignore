@@ -9,15 +9,17 @@ frontend/dist/
 backend/dist/
 
 # Runtime data, credentials, and sensitive private keys
-backend/data/
+backend/data/*
 !backend/data/.gitkeep
-backend/data/*.json
-backend/data/*.key
-backend/data/*.crt
-backend/data/ssh_host_rsa_key
-backend/data/home/
-backend/data/ssl/
-backend/data/nginx/
+!backend/data/README.md
+backend/data/home/*
+!backend/data/home/.gitkeep
+backend/data/ssl/*
+!backend/data/ssl/.gitkeep
+backend/data/nginx/*
+!backend/data/nginx/.gitkeep
+backend/data/www/*
+!backend/data/www/.gitkeep
 
 # Environment variables
 .env

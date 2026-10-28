@@ -81,3 +81,80 @@ Access the panel at:
 ```
 http://<YOUR_SERVER_IP>:8443
 ```
+
+---
+
+## 💻 Local Development & Contributing
+
+You can develop, test, and contribute to ZoomPanel locally on Windows, macOS, or Linux without needing a dedicated VPS or root access.
+
+### 📁 Repository Structure
+
+```text
+ZoomPanel/
+├── backend/           # Node.js + Express host management daemon & REST API
+│   ├── src/           # Controllers, routes, and Linux service integrations
+│   └── data/          # Local JSON database & runtime state (auto-initialized)
+├── frontend/          # React 18 + Vite + Tailwind CSS control dashboard
+│   └── src/           # Components, pages, layout, and API client
+├── shared/            # Shared TypeScript type definitions and domain models
+├── scripts/           # Production deployment & Ubuntu installer scripts
+├── package.json       # Monorepo/npm workspaces configuration
+└── README.md
+```
+
+### 📋 Prerequisites
+- **Node.js**: v20.x or higher LTS (tested on Node v20–v24)
+- **npm**: v10.x or higher
+
+### ⚡ Quickstart
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/your-username/zoompanel.git
+   cd zoompanel
+   ```
+
+2. **Install all dependencies** (installs root, backend, frontend, and shared in one command):
+   ```bash
+   npm install
+   ```
+
+3. **Start both backend and frontend concurrently in development mode**:
+   ```bash
+   npm run dev
+   ```
+
+4. **Open your browser**:
+   - **Frontend UI Dashboard**: [`http://localhost:5173`](http://localhost:5173)
+   - **Backend API Daemon**: [`http://localhost:8443/api`](http://localhost:8443/api)
+   - **Daemon Health Check**: [`http://localhost:8443/health`](http://localhost:8443/health)
+
+*(The Vite development server automatically proxies `/api` requests to the backend daemon on port `8443`).*
+
+---
+
+### 🛠️ Available NPM Scripts
+
+All commands can be executed from the **project root**:
+
+| Script | Command | Description |
+| :--- | :--- | :--- |
+| `npm run dev` | `concurrently ...` | Starts both backend daemon and frontend Vite server concurrently. |
+| `npm run dev:backend` | `npm run dev -w backend` | Starts only the backend daemon with `tsx watch` hot-reload. |
+| `npm run dev:frontend` | `npm run dev -w frontend` | Starts only the frontend Vite development server. |
+| `npm run build` | `npm run build -w ...` | Typechecks and compiles both backend (`tsc`) and frontend (`vite build`). |
+| `npm run build:backend` | `npm run build -w backend` | Compiles backend TypeScript to `./backend/dist`. |
+| `npm run build:frontend` | `npm run build -w frontend` | Bundles frontend React SPA to `./frontend/dist`. |
+| `npm run start` | `npm run start -w backend` | Starts the compiled production backend daemon. |
+
+---
+
+### ⚙️ How Local Dev Differs from Production VPS
+
+- **Local Development (Windows / macOS / non-root)**:
+  - System commands that require root Linux privileges (e.g., `systemctl`, `ufw`, `openssl`, real NGINX reloads) gracefully fall back to local mock operations.
+  - Data is saved directly to JSON files in [`backend/data/`](./backend/data/README.md) (`sites.json`, `firewall.json`, `databases.json`), allowing instant UI and API prototyping.
+- **Production VPS (Ubuntu 26.04)**:
+  - Run with root privileges via the `zoompanel.service` systemd unit.
+  - Interacts directly with `/etc/nginx`, MariaDB 13.0.2, PM2 process manager, and UFW firewall.
