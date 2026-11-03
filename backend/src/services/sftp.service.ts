@@ -46,8 +46,8 @@ export class SftpService {
         this.port = data.port;
       }
     } catch {
-      this.enabled = process.platform === 'linux' ? false : true;
-      this.port = 22;
+      this.enabled = false;
+      this.port = process.platform === 'linux' ? 2222 : 22;
     }
   }
 

@@ -17,6 +17,7 @@
     "build:backend": "npm run build -w backend",
     "build:frontend": "npm run build -w frontend",
     "start": "npm run start -w backend",
+    "upgrade": "bash scripts/upgrade.sh",
     "install:all": "npm install"
   },
   "engines": {

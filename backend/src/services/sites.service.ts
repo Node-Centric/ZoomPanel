@@ -1,5 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
+import crypto from 'crypto';
 import type { Site, CreateSitePayload, SiteStatus, SiteSSL } from '../../../shared/types.js';
 import { sslService } from './ssl.service.js';
 import { nginxService } from './nginx.service.js';
@@ -144,8 +145,13 @@ export class SitesService {
       throw new Error('Site User is required and must be at least 3 characters (letters, numbers, underscores).');
     }
 
+    // Ensure a secure password exists for both Linux and SFTP
+    const sitePassword = (payload.sitePassword && payload.sitePassword.trim())
+      ? payload.sitePassword.trim()
+      : crypto.randomBytes(9).toString('base64').replace(/[^a-zA-Z0-9]/g, 'a').slice(0, 12);
+
     // Create system user and directory structure: /home/{site_user}/www/{domain}/
-    await systemUserService.createSystemUser(siteUserClean, payload.sitePassword);
+    await systemUserService.createSystemUser(siteUserClean, sitePassword);
     const rootDirectory = systemUserService.getSiteWwwDir(siteUserClean, domainClean);
 
     await fs.mkdir(rootDirectory, { recursive: true });

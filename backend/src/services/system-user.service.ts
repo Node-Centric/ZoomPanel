@@ -1,7 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import crypto from 'crypto';
-import { exec } from 'child_process';
+import { exec, spawn } from 'child_process';
 import { promisify } from 'util';
 
 const execAsync = promisify(exec);
@@ -25,10 +25,6 @@ export class SystemUserService {
     const homeDir = this.getUserHomeDir(username);
     const sshDir = path.join(homeDir, '.ssh');
     const authKeysPath = path.join(sshDir, 'authorized_keys');
-
-    if (password) {
-      await this.setPassword(username, password);
-    }
 
     if (this.isLinux) {
       try {
@@ -71,6 +67,11 @@ export class SystemUserService {
         await fs.writeFile(authKeysPath, '', 'utf-8');
       }
     }
+
+    // Set and synchronize password after user is created
+    if (password) {
+      await this.setPassword(username, password);
+    }
   }
 
   private getCredsPath(): string {
@@ -101,8 +102,22 @@ export class SystemUserService {
 
     if (this.isLinux) {
       try {
-        await execAsync(`echo "${username}:${password}" | chpasswd`);
-      } catch {}
+        // Feed username:password safely through stdin to avoid shell escaping issues
+        await new Promise<void>((resolve, reject) => {
+          const child = spawn('chpasswd', [], { stdio: ['pipe', 'ignore', 'pipe'] });
+          child.stdin.write(`${username}:${password}\n`);
+          child.stdin.end();
+          child.on('close', (code) => {
+            if (code === 0) resolve();
+            else reject(new Error(`chpasswd exited with code ${code}`));
+          });
+          child.on('error', reject);
+        });
+        // Unlock user account in shadow in case useradd locked it
+        await execAsync(`usermod -U "${username}"`).catch(() => {});
+      } catch (err: any) {
+        console.error(`[SystemUserService] Failed to set Linux password for ${username}:`, err.message);
+      }
     }
   }
 

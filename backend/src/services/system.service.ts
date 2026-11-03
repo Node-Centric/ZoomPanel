@@ -223,6 +223,7 @@ export class SystemService {
     let nginxRunning = false;
     let pm2Running = false;
     let mariadbRunning = false;
+    let opensshRunning = false;
 
     if (process.platform === 'linux') {
       try {
@@ -245,11 +246,19 @@ export class SystemService {
       } catch {
         mariadbRunning = false;
       }
+
+      try {
+        const { stdout: sshOut } = await execAsync('systemctl is-active ssh || systemctl is-active sshd').catch(() => ({ stdout: 'inactive' }));
+        opensshRunning = sshOut.trim().includes('active');
+      } catch {
+        opensshRunning = false;
+      }
     } else {
       // In local dev on non-linux, mark as simulated active for preview
       nginxRunning = true;
       pm2Running = true;
       mariadbRunning = true;
+      opensshRunning = true;
     }
 
     return { 
@@ -257,6 +266,8 @@ export class SystemService {
       pm2: pm2Running, 
       mariadb: mariadbRunning,
       mariadbVersion: '13.0.2',
+      openssh: opensshRunning,
+      opensshPort: 22,
       sftp: sftpService.isRunning(),
       sftpPort: sftpService.getPort(),
       daemonPort: sitesService.getDaemonPort() || DAEMON_PORT,
@@ -329,6 +340,7 @@ export class SystemService {
         if (serviceName === 'nginx') await execAsync('systemctl start nginx');
         else if (serviceName === 'pm2') await execAsync('pm2 resurrect || systemctl start pm2');
         else if (serviceName === 'mariadb') await execAsync('systemctl start mariadb');
+        else if (serviceName === 'openssh') await execAsync('systemctl start ssh || systemctl start sshd');
         return { success: true, message: `${serviceName} service started successfully.` };
       } catch (err: any) {
         return { success: false, message: err.stderr || err.message };
@@ -350,6 +362,7 @@ export class SystemService {
         if (serviceName === 'nginx') await execAsync('systemctl stop nginx');
         else if (serviceName === 'pm2') await execAsync('pm2 kill || systemctl stop pm2');
         else if (serviceName === 'mariadb') await execAsync('systemctl stop mariadb');
+        else if (serviceName === 'openssh') await execAsync('systemctl stop ssh || systemctl stop sshd');
         return { success: true, message: `${serviceName} service stopped successfully.` };
       } catch (err: any) {
         return { success: false, message: err.stderr || err.message };
@@ -374,6 +387,8 @@ export class SystemService {
           await execAsync('pm2 restart all || systemctl restart pm2');
         } else if (serviceName === 'mariadb') {
           await execAsync('systemctl restart mariadb');
+        } else if (serviceName === 'openssh') {
+          await execAsync('systemctl restart ssh || systemctl restart sshd');
         }
         return { success: true, message: `${serviceName} service restarted successfully.` };
       } catch (err: any) {
@@ -395,6 +410,13 @@ export class SystemService {
         const res = await sftpService.stop();
         return { success: res.success, message: res.message, running: sftpService.isRunning() };
       }
+    }
+
+    if (serviceName === 'openssh') {
+      const stats = await this.checkServices();
+      const shouldStart = action ? action === 'start' : !stats.openssh;
+      const res = shouldStart ? await this.startService('openssh') : await this.stopService('openssh');
+      return { success: res.success, message: res.message, running: shouldStart };
     }
 
     const isRunning = true;

@@ -37,7 +37,18 @@ export PATH=$PATH:/usr/local/bin:/usr/bin:/bin
 # 2. Update Apt & Install Base Utilities
 echo -e "${BLUE}[1/8] Updating package index and installing dependencies...${NC}"
 apt-get update -y
-apt-get install -y curl wget git gnupg2 ca-certificates lsb-release ufw openssl nginx build-essential
+apt-get install -y curl wget git gnupg2 ca-certificates lsb-release ufw openssl nginx build-essential openssh-server
+
+# Configure OpenSSH for ZoomPanel site users
+mkdir -p /etc/ssh/sshd_config.d
+cat << 'SSHD_EOF' > /etc/ssh/sshd_config.d/99-zoompanel.conf
+# ZoomPanel OpenSSH Configuration
+PasswordAuthentication yes
+KbdInteractiveAuthentication yes
+SSHD_EOF
+
+systemctl enable ssh || systemctl enable sshd || true
+systemctl restart ssh || systemctl restart sshd || true
 
 # 3. Install MariaDB 13.0.2
 echo -e "${BLUE}[2/8] Installing MariaDB 13.0.2 database server...${NC}"
@@ -157,11 +168,12 @@ systemctl restart zoompanel.service
 # 8. Configure Firewall (UFW)
 echo -e "${BLUE}[8/8] Configuring Firewall (UFW)...${NC}"
 # Allow essential ports matching ZoomPanel default rules:
-# Web traffic (80, 443) and ZoomPanel Daemon (8443) enabled by default for both IPv4 and IPv6
+# Web traffic (80, 443), SSH/SFTP (22), and ZoomPanel Daemon (8443) enabled by default for both IPv4 and IPv6
+ufw allow 22/tcp comment 'ZoomPanel SSH/SFTP' || true
 ufw allow 80/tcp comment 'ZoomPanel HTTP' || true
 ufw allow 443/tcp comment 'ZoomPanel HTTPS' || true
 ufw allow 8443/tcp comment 'ZoomPanel Daemon' || true
-# Note: SSH/SFTP (port 22) and MariaDB (port 3306) entries are disabled by default in ZoomPanel WAF
+# Note: MariaDB (port 3306) entries are disabled by default in ZoomPanel WAF for security
 
 # Detect Server IP
 SERVER_IP=$(curl -s -4 ifconfig.me || hostname -I | awk '{print $1}')

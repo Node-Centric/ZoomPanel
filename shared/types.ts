@@ -165,6 +165,8 @@ export interface SystemStats {
     pm2: boolean;
     mariadb: boolean;
     mariadbVersion?: string;
+    openssh?: boolean;
+    opensshPort?: number;
     sftp?: boolean;
     sftpPort?: number;
     daemonPort?: number;

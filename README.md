@@ -84,6 +84,24 @@ http://<YOUR_SERVER_IP>:8443
 
 ---
 
+## 🔄 Upgrading an Existing Server
+
+To safely upgrade ZoomPanel without losing any customer sites, databases, credentials, or SSL certificates:
+
+```bash
+cd /opt/zoompanel
+sudo bash scripts/upgrade.sh
+```
+
+The upgrade script automatically:
+1. Creates a timestamped safety backup of all state and credentials into `/opt/zoompanel/backups/`.
+2. Pulls the latest code updates (if installed via Git) or uses new deployed files.
+3. Installs updated dependencies and rebuilds the backend daemon and frontend SPA.
+4. Restarts `zoompanel.service` with zero/minimal downtime.
+5. Verifies daemon health and reports status.
+
+---
+
 ## 💻 Local Development & Contributing
 
 You can develop, test, and contribute to ZoomPanel locally on Windows, macOS, or Linux without needing a dedicated VPS or root access.
