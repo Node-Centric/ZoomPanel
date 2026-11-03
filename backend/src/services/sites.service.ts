@@ -46,6 +46,9 @@ export class SitesService {
         if (!s.sshKeys) {
           s.sshKeys = [];
         }
+        if (s.siteUser) {
+          systemUserService.hideFromGuiLogin(s.siteUser).catch(() => {});
+        }
         this.sites.set(s.id, s);
       });
     } catch {

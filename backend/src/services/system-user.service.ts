@@ -72,6 +72,22 @@ export class SystemUserService {
     if (password) {
       await this.setPassword(username, password);
     }
+
+    // Hide user from Ubuntu desktop GUI login screen (AccountsService)
+    await this.hideFromGuiLogin(username);
+  }
+
+  public async hideFromGuiLogin(username: string): Promise<void> {
+    if (!this.isLinux) return;
+    try {
+      const accountsServiceDir = '/var/lib/AccountsService/users';
+      await fs.mkdir(accountsServiceDir, { recursive: true });
+      const userConfPath = path.join(accountsServiceDir, username);
+      const confContent = `[User]\nSystemAccount=true\n`;
+      await fs.writeFile(userConfPath, confContent, { mode: 0o644 });
+    } catch (err: any) {
+      console.warn(`[SystemUserService] Could not set AccountsService flag for ${username}:`, err.message);
+    }
   }
 
   private getCredsPath(): string {
